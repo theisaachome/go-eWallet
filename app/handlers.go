@@ -3,28 +3,18 @@ package app
 import (
 	"encoding/json"
 	"encoding/xml"
+	"fmt"
+	"github.com/gorilla/mux"
 	"github.com/theisaachome/go-eWallet/service"
 	"net/http"
 )
-
-type Customer struct {
-	Name    string `json:"full_name" xml:"name"`
-	City    string `json:"city" xml:"city"`
-	Zipcode string `json:"zipcode" xml:"zipcode"`
-}
 
 type CustomerHandlers struct {
 	service service.CustomerService
 }
 
 func (ch *CustomerHandlers) getAllCustomers(w http.ResponseWriter, r *http.Request) {
-	//customers := []Customer{
-	//	{"Isaac", "Ho chi Minh", "11000"},
-	//	{"John Peter", "Da Nang", "13000"},
-	//	{"Olivia", "Hanoi", "12000"},
-	//	{"Paul", "sapa", "14000"},
-	//	{"Mary", "Cho tha", "17000"},
-	//}
+
 	customers, _ := ch.service.GetAllCustomer()
 
 	if r.Header.Get("Content-Type") == "application/xml" {
@@ -36,4 +26,18 @@ func (ch *CustomerHandlers) getAllCustomers(w http.ResponseWriter, r *http.Reque
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(customers)
 	}
+}
+
+func (ch *CustomerHandlers) getCustomer(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id := vars["customer_id"]
+	customer, error := ch.service.GetCustomerByID(id)
+	if error != nil {
+		w.WriteHeader(http.StatusNotFound)
+		fmt.Fprintf(w, error.Error())
+	} else {
+		w.Header().Add("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(customer)
+	}
+
 }

@@ -11,19 +11,6 @@ type CustomerRepositoryDb struct {
 	client *sql.DB
 }
 
-func NewCustomerRepositoryDb() CustomerRepositoryDb {
-	// ...
-	db, err := sql.Open("mysql", "user:password@tcp(localhost:3306)/db")
-	if err != nil {
-		panic(err)
-	}
-	// See "Important settings" section.
-	db.SetConnMaxLifetime(time.Minute * 3)
-	db.SetMaxOpenConns(10)
-	db.SetMaxIdleConns(10)
-
-	return CustomerRepositoryDb{db}
-}
 func (d CustomerRepositoryDb) FindAll() ([]Customer, error) {
 
 	findAlQuery := "SELECT id,customer_id,name,email,phone,address,date_of_birth,status FROM customers"
@@ -44,4 +31,31 @@ func (d CustomerRepositoryDb) FindAll() ([]Customer, error) {
 		customers = append(customers, c)
 	}
 	return customers, nil
+}
+
+func (d CustomerRepositoryDb) FindById(id string) (*Customer, error) {
+	customerQuery := "SELECT id,customer_id,name,email,phone,address,date_of_birth,status FROM customers WHERE id=?"
+	row := d.client.QueryRow(customerQuery, id)
+	var c Customer
+	err := row.Scan(&c.Id, &c.CustomerId, &c.Name, &c.Email, &c.Phone, &c.Address, &c.DateOfBirth, &c.Status)
+	if err != nil {
+		log.Println("Error while Scanning customer by id in customer table rows:", err)
+		return nil, err
+	}
+	return &c, nil
+
+}
+
+func NewCustomerRepositoryDb() CustomerRepositoryDb {
+	// ...
+	db, err := sql.Open("mysql", "user:password@tcp(localhost:3306)/db")
+	if err != nil {
+		panic(err)
+	}
+	// See "Important settings" section.
+	db.SetConnMaxLifetime(time.Minute * 3)
+	db.SetMaxOpenConns(10)
+	db.SetMaxIdleConns(10)
+
+	return CustomerRepositoryDb{db}
 }
