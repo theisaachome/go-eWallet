@@ -3,48 +3,46 @@ package domain
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/jmoiron/sqlx"
 	"github.com/theisaachome/go-eWallet/exception"
-	"log"
+	"github.com/theisaachome/go-eWallet/logger"
+	"os"
 	"time"
 )
 
 type CustomerRepositoryDb struct {
-	client *sql.DB
+	client *sqlx.DB
 }
 
-func (d CustomerRepositoryDb) FindAll() ([]Customer, error) {
-
-	findAlQuery := "SELECT id,customer_id,name,email,phone,address,date_of_birth,status FROM customers"
-
-	rows, err := d.client.Query(findAlQuery)
-	if err != nil {
-		log.Println("Error while fetching customers table rows:", err)
-		return nil, err
-	}
+func (d CustomerRepositoryDb) FindAll(status string) ([]Customer, error) {
+	var err error
 	customers := make([]Customer, 0)
-	for rows.Next() {
-		var c Customer
-		err := rows.Scan(&c.Id, &c.CustomerId, &c.Name, &c.Email, &c.Phone, &c.Address, &c.DateOfBirth, &c.Status)
-		if err != nil {
-			log.Println("Error while fetching customers table rows:", err)
-			return nil, err
-		}
-		customers = append(customers, c)
+	if status == "" {
+		findAlQuery := "SELECT id,customer_id,name,email,phone,address,date_of_birth,status FROM customers"
+		err = d.client.Select(&customers, findAlQuery)
+
+	} else {
+		findAlQuery := "SELECT id,customer_id,name,email,phone,address,date_of_birth,status FROM customers WHERE status=?"
+		err = d.client.Select(&customers, findAlQuery, status)
+	}
+	if err != nil {
+		logger.Error("Error while fetching customers table rows:" + err.Error())
+		return nil, err
 	}
 	return customers, nil
 }
 
 func (d CustomerRepositoryDb) FindById(id string) (*Customer, *exception.AppError) {
 	customerQuery := "SELECT id,customer_id,name,email,phone,address,date_of_birth,status FROM customers WHERE id=?"
-	row := d.client.QueryRow(customerQuery, id)
 	var c Customer
-	err := row.Scan(&c.Id, &c.CustomerId, &c.Name, &c.Email, &c.Phone, &c.Address, &c.DateOfBirth, &c.Status)
+	err := d.client.Get(&c, customerQuery, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, exception.NewNotFoundException("customer not found")
 		} else {
-			log.Println("Error while Scanning customer by id in customer table rows:", err.Error())
+			logger.Error("Error while Scanning customer by id in customer table rows:" + err.Error())
 			return nil, exception.NewUnexpectedError("unexpected database error")
 		}
 	}
@@ -53,8 +51,15 @@ func (d CustomerRepositoryDb) FindById(id string) (*Customer, *exception.AppErro
 }
 
 func NewCustomerRepositoryDb() CustomerRepositoryDb {
-	// ...
-	db, err := sql.Open("mysql", "user:password@tcp(localhost:3306)/db")
+	dbUsr := os.Getenv("DB_USR")
+	dbPassWd := os.Getenv("DB_PASSWD")
+	dbHost := os.Getenv("DB_HOST")
+	dbPORT := os.Getenv("DB_PORT")
+	dbNAME := os.Getenv("DB_NAME")
+
+	dataSource := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", dbUsr, dbPassWd, dbHost, dbPORT, dbNAME)
+	// ...s
+	db, err := sqlx.Open("mysql", dataSource)
 	if err != nil {
 		panic(err)
 	}

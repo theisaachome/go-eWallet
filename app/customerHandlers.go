@@ -13,8 +13,8 @@ type CustomerHandlers struct {
 }
 
 func (ch *CustomerHandlers) getAllCustomers(w http.ResponseWriter, r *http.Request) {
-
-	customers, _ := ch.service.GetAllCustomer()
+	status := r.URL.Query().Get("status")
+	customers, _ := ch.service.GetAllCustomer(status)
 
 	if r.Header.Get("Content-Type") == "application/xml" {
 		// xml format
@@ -38,7 +38,6 @@ func (ch *CustomerHandlers) getCustomer(w http.ResponseWriter, r *http.Request) 
 	}
 
 }
-
 func writeResponse(w http.ResponseWriter, code int, data interface{}) {
 	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(code)
