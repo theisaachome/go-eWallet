@@ -2,7 +2,9 @@ package domain
 
 import (
 	"database/sql"
+	"errors"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/theisaachome/go-eWallet/exception"
 	"log"
 	"time"
 )
@@ -33,14 +35,18 @@ func (d CustomerRepositoryDb) FindAll() ([]Customer, error) {
 	return customers, nil
 }
 
-func (d CustomerRepositoryDb) FindById(id string) (*Customer, error) {
+func (d CustomerRepositoryDb) FindById(id string) (*Customer, *exception.AppError) {
 	customerQuery := "SELECT id,customer_id,name,email,phone,address,date_of_birth,status FROM customers WHERE id=?"
 	row := d.client.QueryRow(customerQuery, id)
 	var c Customer
 	err := row.Scan(&c.Id, &c.CustomerId, &c.Name, &c.Email, &c.Phone, &c.Address, &c.DateOfBirth, &c.Status)
 	if err != nil {
-		log.Println("Error while Scanning customer by id in customer table rows:", err)
-		return nil, err
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, exception.NewNotFoundException("customer not found")
+		} else {
+			log.Println("Error while Scanning customer by id in customer table rows:", err.Error())
+			return nil, exception.NewUnexpectedError("unexpected database error")
+		}
 	}
 	return &c, nil
 

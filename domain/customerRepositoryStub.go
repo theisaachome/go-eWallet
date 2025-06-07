@@ -1,10 +1,12 @@
 package domain
 
+import "github.com/theisaachome/go-eWallet/exception"
+
 type CustomerRepositoryStub struct {
 	customers []Customer
 }
 
-func (s CustomerRepositoryStub) FindAll() ([]Customer, error) {
+func (s CustomerRepositoryStub) FindAll() ([]Customer, *exception.AppError) {
 	return s.customers, nil
 }
 

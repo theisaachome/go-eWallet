@@ -1,5 +1,7 @@
 package domain
 
+import "github.com/theisaachome/go-eWallet/exception"
+
 type Customer struct {
 	Id          string `json:"id"`
 	CustomerId  string `json:"customer_id"`
@@ -13,5 +15,5 @@ type Customer struct {
 
 type CustomerRepository interface {
 	FindAll() ([]Customer, error)
-	FindById(string) (*Customer, error)
+	FindById(string) (*Customer, *exception.AppError)
 }
